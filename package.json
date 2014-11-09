@@ -1,0 +1,30 @@
+{
+  "name": "node-matrix-logger",
+  "version": "0.0.0",
+  "description": "Squiz Matrix log manager from Node.js",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "concat-stream": "^1.4.6",
+    "crypto-rand": "0.0.2",
+    "ent": "^2.0.0",
+    "html-minifier": "^0.6.6",
+    "hyperquest": "^0.3.0",
+    "js-striphtml": "^1.1.2",
+    "node-matrix-auth": "^0.1.0",
+    "node-matrix-url": "^0.1.0",
+    "readable-stream": "^1.0.33",
+    "through": "^2.3.4",
+    "trumpet": "^1.6.5"
+  },
+  "devDependencies": {
+    "tape": "^2.14.0"
+  },
+  "scripts": {
+    "test": "tape test/*.js"
+  },
+  "author": "Josh Gillies <npm@joshgilli.es> (http://joshgilli.es/)",
+  "license": "MIT"
+}
