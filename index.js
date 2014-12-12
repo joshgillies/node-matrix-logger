@@ -1,76 +1,44 @@
-var url = require('url');
-var rand = require('crypto-rand').rand;
-var hyperquest = require('hyperquest');
-var trumpet = require('trumpet');
-var ent = require('ent');
-var concat = require('concat-stream');
-var through = require('through');
-var matrixUrl = require('node-matrix-url');
-var minify = require('html-minifier').minify;
-var stripTags = require('js-striphtml').stripTags;
+var events = require('events');
+var extend = require('xtend');
+var processLogs = require('./lib/processLogs');
+var inherits = require('inherits');
+var Readable = require('readable-stream').Readable;
 
-var stripHtml = function stripHtml(string) {
-  return stripTags(minify(string, {
-    removeEmptyElements: true
-  }));
+var fallback = function fallback(err, data) {
+  if (err) this.emit('error', err);
+  this.emit('data', data);
 };
 
-var parseInfo = function parseInfo(string) {
-  var lines = stripHtml(string).split('\n');
-  return lines.map(function(line, index){
-    return ent.decode(line.trim());
-  }).join(' ');
+var Logger = function Logger(auth, opts, callback) {
+  if (!(this instanceof Logger))
+    return new Logger(auth, opts, callback);
+
+  Readable.call(this);
+
+  if (typeof opts === 'function')
+    callback = opts;
+
+  if (!callback)
+    callback = fallback.bind(this);
+
+  if (auth instanceof events.EventEmitter) {
+    auth.once('success', function(creds) {
+      processLogs(extend(opts, creds), callback);
+    }).on('error', function(err) {
+      callback(err);
+    });
+  } else {
+    opts = auth;
+    processLogs(opts, callback);
+  }
 };
 
-var concatString = function concatString(callback) {
-  return concat({ encoding: 'string' }, callback);
-};
+inherits(Logger, Readable);
 
-var Logger = function Logger(opts, callback) {
-  if (typeof opts === 'function') callback = opts;
-
-  var tr = trumpet();
-  var htmlStream = through().pause();
-  var objStream = through().pause();
-
-  var req = hyperquest(matrixUrl(opts.admin.href, {
-    screen: 'log',
-    level: opts.level,
-    lines: opts.lines,
-    rand: rand()
-  }));
-  req.setHeader('Cookie', opts.cookie);
-  req.pipe(concatString(function(data) {
-    htmlStream.queue(minify(data)).end();
-  }));
-
-  htmlStream.pipe(tr);
-  htmlStream.resume();
-
-  // info and time stamp
-  tr.selectAll('tr td:first-child', function(node) {
-    node.createReadStream()
-      .pipe(concatString(function(data) {
-        objStream.queue(parseInfo(stripHtml(data)));
-      }));
+Logger.prototype._read = function(n) {
+  this.on('data', function(data) {
+    this.push(JSON.stringify(data));
   });
-
-  // message
-  tr.selectAll('tr td:first-child + td', function(node) {
-    node.createReadStream()
-      .pipe(concatString(function(data) {
-        objStream.queue(stripTags(ent.decode(data)));
-      }));
-  });
-
-  tr.on('end', function(){
-    objStream.end();
-  });
-
-  objStream.pipe(through(function(data){
-    callback(null, data);
-  }));
-  objStream.resume();
 };
 
 module.exports = Logger;
