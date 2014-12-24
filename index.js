@@ -1,4 +1,3 @@
-var events = require('events');
 var extend = require('xtend');
 var processLogs = require('./lib/processLogs');
 var inherits = require('inherits');
@@ -21,14 +20,17 @@ var Logger = function Logger(auth, opts, callback) {
   if (!callback)
     callback = fallback.bind(this);
 
-  if (auth instanceof events.EventEmitter) {
+  if (!auth._ready) {
     auth.once('success', function(creds) {
-      processLogs(extend(opts, creds), callback);
+      opts.cookie = auth.cookie;
+      opts.href = auth.admin.href;
+      processLogs(opts, callback);
     }).on('error', function(err) {
       callback(err);
     });
   } else {
-    opts = auth;
+    opts.cookie = auth.cookie;
+    opts.href = auth.admin.href;
     processLogs(opts, callback);
   }
 };
