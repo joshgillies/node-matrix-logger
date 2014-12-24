@@ -10,17 +10,17 @@
     "concat-stream": "^1.4.6",
     "crypto-rand": "0.0.2",
     "ent": "^2.0.0",
+    "extend": "~1.1.3",
     "html-minifier": "^0.6.6",
     "hyperquest": "^0.3.0",
+    "inherits": "~2.0.1",
     "js-striphtml": "^1.1.2",
-    "node-matrix-auth": "^0.1.0",
+    "node-matrix-auth": "^0.2.0",
     "node-matrix-url": "^0.1.0",
     "readable-stream": "^1.0.33",
     "through": "^2.3.4",
     "trumpet": "^1.6.5",
-    "extend": "~1.1.3",
-    "xtend": "~4.0.0",
-    "inherits": "~2.0.1"
+    "xtend": "~4.0.0"
   },
   "devDependencies": {
     "tape": "^2.14.0"
