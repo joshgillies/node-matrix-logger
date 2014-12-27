@@ -1,46 +1,41 @@
-var extend = require('xtend');
+var through = require('through');
 var processLogs = require('./lib/processLogs');
-var inherits = require('inherits');
-var Readable = require('readable-stream').Readable;
-
-var fallback = function fallback(err, data) {
-  if (err) this.emit('error', err);
-  this.emit('data', data);
-};
 
 var Logger = function Logger(auth, opts, callback) {
-  if (!(this instanceof Logger))
-    return new Logger(auth, opts, callback);
-
-  Readable.call(this);
-
   if (typeof opts === 'function')
     callback = opts;
 
-  if (!callback)
-    callback = fallback.bind(this);
+  opts.auth = auth;
+
+  var logs;
+  var rs = through();
+  var onError = function onError(err) {
+    rs.emit('error', err);
+  };
+  var onSuccess = function onSuccess() {
+    logs = processLogs(opts);
+    logs.on('error', onError);
+    logs.on('data', function(data) {
+      rs.queue(data);
+    });
+    logs.on('end', function() {
+      rs.end();
+    });
+  };
 
   if (!auth._ready) {
-    auth.once('success', function(creds) {
-      opts.cookie = auth.cookie;
-      opts.href = auth.admin.href;
-      processLogs(opts, callback);
-    }).on('error', function(err) {
-      callback(err);
-    });
+    auth.on('success', onSuccess);
+    auth.on('error', onError);
   } else {
-    opts.cookie = auth.cookie;
-    opts.href = auth.admin.href;
-    processLogs(opts, callback);
+    onSuccess();
   }
-};
 
-inherits(Logger, Readable);
+  if (callback) {
+    rs.on('error', callback);
+    rs.on('data', function(data) { callback(null, data); });
+  }
 
-Logger.prototype._read = function(n) {
-  this.on('data', function(data) {
-    this.push(JSON.stringify(data));
-  });
+  return rs;
 };
 
 module.exports = Logger;
